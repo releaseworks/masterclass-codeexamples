@@ -1,4 +1,4 @@
-# Lesson 32: Terraform
+# Lesson: Terraform
 In this lesson, we are provisioning a load balancer and two web servers in nginx.
 
 ## To see what changes would be done
