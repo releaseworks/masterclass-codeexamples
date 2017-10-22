@@ -1,5 +1,4 @@
-/* First we'll set some variables for AWS authentication,
-   and for defining our management IP. */
+/* First we'll set some variables for AWS authentication. */
 
 variable "aws_access_key" {
     default = ""
@@ -69,7 +68,7 @@ resource "aws_security_group" "gid-lb" {
 
 
 /* Security group for the app nodes. We'll allow 8484/tcp from our load
-   balancer, and 22/tcp from the management IP. */
+   balancer, and 22/tcp from the world (see note below). */
 
 resource "aws_security_group" "gid-app" {
     name = "gid app"
