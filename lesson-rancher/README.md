@@ -20,3 +20,8 @@ docker run -d -p 8080:8080 rancher/server
 
 Finally, you will need to run the Rancher node startup command on the Rancher server. You will get this command when you add a host in the Rancher web interface.
 
+After you have finished testing, run the following command on Google Cloud Shell to terminate the virtual machine:
+```
+gcloud compute instances delete rancher
+```
+
