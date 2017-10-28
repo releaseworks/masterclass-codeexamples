@@ -1,5 +1,5 @@
 # Lesson: Rancher
-In this lesson, we'll configure 
+In this lesson, we'll configure a virtual machine on Google Compute Engine to run the Rancher master, and a Rancher agent. We'll deploy a simple application on Rancher, and demonstrate Rancher Catalog by installing an Elasticsearch cluster on our Rancher platform.
 
 Run the following commands on Google Cloud Shell to create the Virtual Machine and firewall rule:
 ```
