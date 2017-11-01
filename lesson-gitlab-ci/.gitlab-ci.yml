@@ -1,0 +1,44 @@
+image: docker:latest
+
+build-master:
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker build --pull -t "$CI_REGISTRY_IMAGE" .
+    - docker tag "$CI_REGISTRY_IMAGE:latest" "$CI_REGISTRY_IMAGE:$CI_PIPELINE_ID"
+    - docker push "$CI_REGISTRY_IMAGE:$CI_PIPELINE_ID"
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+  only:
+    - master
+
+build:
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker build --pull -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+  except:
+    - master
+
+deploy:
+    image: google/cloud-sdk
+    stage: deploy
+    environment: dev
+    script:
+      - echo $GCLOUD_AUTH > /tmp/gcloudkey.json
+      - gcloud auth activate-service-account --key-file /tmp/gcloudkey.json
+      - >
+        gcloud config set project $(cat /tmp/gcloudkey.json | tr -d '\n' | sed -n 's/.*"project_id": "\([^\s]*\)",[^\s]*"private_key_id.*/\1/p')
+      - gcloud container clusters get-credentials -z us-central1-a hellonode
+      - kubectl run hellonode --image=$CI_REGISTRY_IMAGE:$CI_PIPELINE_ID --port 8000 || kubectl set image deployment/hellonode hellonode=$CI_REGISTRY_IMAGE:$CI_PIPELINE_ID
+      - kubectl expose deployment hellonode --type=LoadBalancer --port 80 --target-port 8000 || echo "Load Balancer already exists"
+      - while [[ "$EXTIP" == "" ]]; do EXTIP=$(kubectl get services -l run=hellonode -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}'); sleep 5; done; echo "Application deployed to http://$EXTIP)"
+    only:
+      - master
+    after_script:
+      - rm /tmp/gcloudkey.json
+
