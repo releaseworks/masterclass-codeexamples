@@ -1,0 +1,105 @@
+- hosts: localhost
+  name: Create infrastructure on AWS
+  connection: local
+  gather_facts: False
+  vars:
+    server_count: 1
+
+  tasks:
+    - name: Generate SSH key if it doesn't exist
+      shell: ssh-keygen -b 2048 -t rsa -f ./hellonode_key -q -N ""
+      args:
+        creates: ./hellonode_key
+
+    - name: Ensure key pair exists in EC2
+      ec2_key:
+        name: hellonode_key
+        key_material: "{{ item }}"
+      with_file: ./hellonode_key.pub
+
+    - name: Ensure security group exists
+      ec2_group:
+        name: hellonode_sg
+        description: Security group for hellonode server
+        rules:
+          - proto: tcp
+            from_port: 8000
+            to_port: 8000
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+        rules_egress:
+          - proto: all
+            from_port: -1
+            to_port: -1
+            cidr_ip: 0.0.0.0/0
+
+    - name: Ensure {{ server_count }} server(s) are running
+      ec2:
+        key_name: hellonode_key
+        group: hellonode_sg
+        instance_type: t2.micro
+        image: "ami-da05a4a0"
+        wait: true
+        exact_count: "{{ server_count }}"
+        count_tag:
+          Name: Hellonode Server
+        instance_tags:
+          Name: Hellonode Server
+        user_data: |
+             #!/bin/sh
+             sudo apt-get -y update
+             sudo apt-get -y --force-yes install python-pip
+      register: ec2
+
+    - name: Add instance public IP to host group
+      add_host:
+        hostname: "{{ item.public_ip }}"
+        groups: ec2hosts
+        ansible_ssh_private_key_file: ./hellonode_key
+      when: item.public_ip != None
+      with_items: "{{ ec2.instances }}"
+
+- hosts: ec2hosts
+  name: Configure Hellonode server
+  user: ubuntu
+  become: true
+  gather_facts: False
+
+  tasks:
+    - name: Wait 300 seconds for target connection to become reachable/usable
+      wait_for_connection:
+        timeout: 300
+
+    - name: Wait for provisioning script to finish
+      become: yes
+      shell:  while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 1; done;
+
+    - name: Ensure repository key is installed
+      apt_key:
+        id: "58118E89F3A912897C070ADBF76221572C52609D"
+        keyserver: "hkp://p80.pool.sks-keyservers.net:80"
+        state: present
+
+    - name: Ensure Docker repository is available
+      apt_repository: repo='deb https://apt.dockerproject.org/repo ubuntu-xenial main' state=present
+
+    - name: Ensure Docker and dependencies are installed
+      apt: name=docker-engine update_cache=yes
+
+    - name: Ensure Docker-py is installed
+      pip: name=docker-py
+
+    - name: Ensure Docker is running
+      service: name=docker state=restarted
+
+    - name: Ensure the hellonode container is running
+      docker_container:
+        name: hellonode
+        state: started
+        image: "getintodevops/hellonode:latest"
+        pull: true
+        ports:
+          - 8000:8000
