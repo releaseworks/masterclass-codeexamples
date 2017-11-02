@@ -15,6 +15,7 @@
       ec2_key:
         name: hellonode_key
         key_material: "{{ item }}"
+        region: "us-east-1"
       with_file: ./hellonode_key.pub
 
     - name: Ensure security group exists
@@ -35,6 +36,7 @@
             from_port: -1
             to_port: -1
             cidr_ip: 0.0.0.0/0
+        region: "us-east-1"
 
     - name: Ensure {{ server_count }} server(s) are running
       ec2:
@@ -51,7 +53,8 @@
         user_data: |
              #!/bin/sh
              sudo apt-get -y update
-             sudo apt-get -y --force-yes install python-pip
+             sudo apt-get -y --force-yes install python python-pip
+        region: "us-east-1"
       register: ec2
 
     - name: Add instance public IP to host group
@@ -75,7 +78,7 @@
 
     - name: Wait for provisioning script to finish
       become: yes
-      shell:  while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 1; done;
+      shell: while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 1; done;
 
     - name: Ensure repository key is installed
       apt_key:
