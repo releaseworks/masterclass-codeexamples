@@ -5,7 +5,7 @@ This directory includes a `Jenkinsfile` with specifications of the build pipelin
 
 ## To run Jenkins as a container
 ```
-docker run -it -v /var/run/docker.sock:/var/run/docker.sock -p8080:8080 getintodevops/jenkins-withdocker:lts
+docker run -it -v /var/run/docker.sock:/var/run/docker.sock -p8080:8080 getintodevops/jenkins-withdocker:lts-docker18.06.0
 ```
 
 Access the Jenkins user interface in http://localhost:8080
