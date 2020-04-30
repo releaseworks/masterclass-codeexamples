@@ -3,4 +3,4 @@ The code examples in this repository are for the Get into DevOps: The Masterclas
 
 The examples are organized by lesson.
 
-For more information, see https://getintodevops.com
+For more information, see https://www.releaseworksacademy.com
