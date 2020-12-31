@@ -1,0 +1,3 @@
+[submodule "lesson-jenkins"]
+	path = lesson-jenkins
+	url = git@github.com:elreydetoda/hellonode.git
